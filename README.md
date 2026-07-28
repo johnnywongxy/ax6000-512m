@@ -4,10 +4,10 @@
 
 基于 GitHub Actions 在线编译 ImmortalWrt 固件 · 红米 AX6000 (MT7986) · MTK 闭源 WiFi 驱动 · 硬件 NAT 加速
 
-[![Build](https://img.shields.io/github/actions/workflow/status/{OWNER}/{REPO}/build.yml?branch=main&style=flat-square&logo=github&label=Build)](../../actions/workflows/build.yml)
-[![Lint](https://img.shields.io/github/actions/workflow/status/{OWNER}/{REPO}/lint.yml?branch=main&style=flat-square&logo=github&label=Lint)](../../actions/workflows/lint.yml)
-[![License](https://img.shields.io/github/license/{OWNER}/{REPO}?style=flat-square)](LICENSE)
-[![Last Commit](https://img.shields.io/github/last-commit/{OWNER}/{REPO}?style=flat-square)](../../commits/main)
+[![Build](https://img.shields.io/github/actions/workflow/status/johnnywongxy/ax6000-512m/build.yml?branch=main&style=flat-square&logo=github&label=Build)](../../actions/workflows/build.yml)
+[![Lint](https://img.shields.io/github/actions/workflow/status/johnnywongxy/ax6000-512m/lint.yml?branch=main&style=flat-square&logo=github&label=Lint)](../../actions/workflows/lint.yml)
+[![License](https://img.shields.io/github/license/johnnywongxy/ax6000-512m?style=flat-square)](LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/johnnywongxy/ax6000-512m?style=flat-square)](../../commits/main)
 
 </div>
 
