@@ -35,7 +35,7 @@ on:
 
 concurrency:
   group: build-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 permissions:
   contents: read
@@ -78,7 +78,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Free disk space
-        uses: jlumbroso/free-disk-space@main
+        uses: jlumbroso/free-disk-space@v1.3.1
         with:
           tool-cache: true
           android: true
@@ -129,7 +129,7 @@ jobs:
       # The session timeout is 30 minutes.
       - name: SSH connection to menuconfig
         if: github.event.inputs.ssh == 'true'
-        uses: mxschmitt/action-tmate@v3
+        uses: mxschmitt/tmate-action@v3.19
         timeout-minutes: 30
         with:
           detaching: false
@@ -145,7 +145,7 @@ jobs:
           git add devices/redmi_ax6000/config
           git diff --cached --quiet || (
             git commit -m "config: update after menuconfig"
-            git push
+            git push || echo "::warning::Failed to push config changes"
           )
 
       # ── Download ─────────────────────────────────────────────────────
@@ -210,6 +210,12 @@ jobs:
             find bin/targets/ -name "*bl31*" -exec cp {} "$GITHUB_WORKSPACE/firmware_collection/" \;
             find bin/targets/ -name "*preloader*" -exec cp {} "$GITHUB_WORKSPACE/firmware_collection/" \;
 
+            # Verify artifacts were collected
+            if ! ls "$GITHUB_WORKSPACE/firmware_collection/"* 2>/dev/null | grep -q .; then
+              echo "::error::No firmware artifacts were collected for $DEV"
+              exit 1
+            fi
+
             echo "::endgroup::"
           done
 
@@ -239,7 +245,7 @@ jobs:
             echo "- **Date**: $date"
             echo "- **Device**: Redmi AX6000 (${{ env.DEVICE_INPUT }})"
             echo "- **Target**: mediatek/filogic (MT7986)"
-            echo "- **Upstream**: \`${UPSTREAM_REPO}@${UPSTREAM_SHA:-$(echo ${UPSTREAM_REF})}\`"
+            echo "- **Upstream**: \`${UPSTREAM_REPO}@${UPSTREAM_SHA:-${UPSTREAM_REF}}\`"
             echo "- **WiFi Driver**: MTK closed-source (mt_wifi)"
             echo "- **Trigger**: \`${GITHUB_EVENT_NAME}\`"
             echo ""
@@ -263,7 +269,7 @@ jobs:
             firmware_collection/*
 
       - name: Delete old workflow runs
-        uses: Mattraks/delete-workflow-runs@v2
+        uses: Mattraks/delete-workflow-runs@v2.0.6
         if: always()
         with:
           retain_days: 0
