@@ -1,0 +1,286 @@
+name: Build
+
+# Builds ImmortalWrt firmware for the Redmi AX6000 (MT7986, closed-source MTK WiFi driver).
+# Pipeline: check (upstream moved?) -> [menuconfig (optional SSH)] -> build -> prune
+#
+# All build parameters live in the `env:` block below — it is the one file you edit.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'SSH menuconfig — connect via tmate to interactively configure'
+        required: false
+        type: boolean
+        default: false
+      device:
+        description: 'Device variant'
+        required: false
+        type: choice
+        default: 'ubootmod'
+        options:
+          - 'ubootmod'
+          - 'stock'
+          - 'all'
+  push:
+    branches: [main]
+    paths:
+      - 'devices/**'
+      - 'scripts/**'
+      - 'feeds.conf.default'
+      - 'diy-part*.sh'
+      - '.github/workflows/build.yml'
+  schedule:
+    - cron: "0 2 * * 1"
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  UPSTREAM_REPO: RuijieNetworksCommunity/MT798X-6.6-24.10
+  UPSTREAM_REF: mt798x-mt799x-mtwifi_be72pro_be68u
+  TARGET: mediatek/filogic
+  DEVICE_INPUT: ${{ github.event.inputs.device || 'ubootmod' }}
+  RELEASE_PREFIX: immortalwrt
+  KEEP: "3"
+  TZ: Asia/Shanghai
+
+jobs:
+  check:
+    name: Check upstream
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      EVENT_NAME: ${{ github.event_name }}
+    outputs:
+      upstream_sha: ${{ steps.check.outputs.upstream_sha }}
+      need: ${{ steps.check.outputs.need }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: bash scripts/check-updates.sh
+
+  build:
+    name: Build firmware (${{ github.event.inputs.device || 'ubootmod' }})
+    needs: check
+    if: needs.check.outputs.need == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Checkout builder repo
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            ack antlr3 asciidoc autoconf automake autopoint binutils bison \
+            build-essential bzip2 ccache clang cmake cpio curl device-tree-compiler \
+            ecj fastjar flex gawk gettext gcc-multilib g++-multilib git gnutls-dev \
+            gperf haveged help2man intltool lib32gcc-s1 libc6-dev-i386 libelf-dev \
+            libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev \
+            libncurses-dev libpython3-dev libreadline-dev libssl-dev libtool \
+            libyaml-dev libz-dev lld llvm lrzsz mkisofs msmtp nano ninja-build \
+            p7zip p7zip-full patch pkgconf python3 python3-pip python3-ply \
+            python3-docutils python3-pyelftools qemu-utils re2c rsync scons \
+            squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim \
+            wget xmlto xxd zlib1g-dev zstd
+
+      - name: Checkout OpenWrt source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.UPSTREAM_REPO }}
+          ref: ${{ needs.check.outputs.upstream_sha || env.UPSTREAM_REF }}
+          fetch-depth: 0
+          path: openwrt
+
+      - name: Prepare build environment
+        env:
+          OPENWRT_DIR: ${{ github.workspace }}/openwrt
+          BUILDER_DIR: ${{ github.workspace }}
+          DEVICE: redmi_ax6000
+        run: bash scripts/prepare-build.sh
+
+      # ── Optional SSH menuconfig ──────────────────────────────────────
+      # When triggered with ssh=true, open a tmate session so you can
+      # interactively run `make menuconfig` from the SSH shell.
+      # The session timeout is 30 minutes.
+      - name: SSH connection to menuconfig
+        if: github.event.inputs.ssh == 'true'
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 30
+        with:
+          detaching: false
+
+      - name: Save config after menuconfig
+        if: github.event.inputs.ssh == 'true'
+        run: |
+          cd openwrt
+          cp .config "$GITHUB_WORKSPACE/devices/redmi_ax6000/config"
+          cd "$GITHUB_WORKSPACE"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add devices/redmi_ax6000/config
+          git diff --cached --quiet || (
+            git commit -m "config: update after menuconfig"
+            git push
+          )
+
+      # ── Download ─────────────────────────────────────────────────────
+      - name: Download sources
+        working-directory: openwrt
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            make download -j"$(nproc)" V=s && break
+            echo "Download attempt $attempt failed; retrying..."
+            sleep 5
+          done
+          # Remove corrupt/small downloads
+          find dl -size -1024c -exec ls -l {} \;
+          find dl -size -1024c -exec rm -f {} \;
+
+      # ── Compile ──────────────────────────────────────────────────────
+      - name: Build firmware
+        id: compile
+        working-directory: openwrt
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/openwrt"
+
+          DEVICES="${DEVICE_INPUT}"
+          if [[ "$DEVICES" == "all" ]]; then
+            DEVICES="ubootmod stock"
+          fi
+
+          mkdir -p "$GITHUB_WORKSPACE/firmware_collection"
+
+          for DEV in $DEVICES; do
+            echo "::group::Building $DEV"
+
+            # Set the target device in .config
+            if [[ "$DEV" == "ubootmod" ]]; then
+              DEVICE_TARGET="xiaomi_redmi-router-ax6000-ubootmod"
+            else
+              DEVICE_TARGET="xiaomi_redmi-router-ax6000-stock"
+            fi
+
+            # Reset config to device config, then switch device
+            cp "$GITHUB_WORKSPACE/devices/redmi_ax6000/config" .config
+
+            # Disable all device targets, then enable the one we want
+            sed -i 's/^CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_xiaomi_redmi-router-ax6000.*=y/# \0 is not set/' .config
+            # Kconfig format for "not set" is a comment line; simpler: rewrite
+            sed -i '/CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_xiaomi_redmi-router-ax6000/d' .config
+            echo "CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_${DEVICE_TARGET}=y" >> .config
+
+            make defconfig
+
+            if ! make -j"$(nproc)"; then
+              echo "::warning::Parallel build failed for $DEV; retrying single-threaded"
+              make -j1 V=s
+            fi
+
+            # Collect artifacts
+            find bin/targets/ -name "*sysupgrade*" -exec cp {} "$GITHUB_WORKSPACE/firmware_collection/" \;
+            find bin/targets/ -name "*factory*" -exec cp {} "$GITHUB_WORKSPACE/firmware_collection/" \;
+            find bin/targets/ -name "*recovery*" -exec cp {} "$GITHUB_WORKSPACE/firmware_collection/" \;
+            find bin/targets/ -name "*bl31*" -exec cp {} "$GITHUB_WORKSPACE/firmware_collection/" \;
+            find bin/targets/ -name "*preloader*" -exec cp {} "$GITHUB_WORKSPACE/firmware_collection/" \;
+
+            echo "::endgroup::"
+          done
+
+          echo "status=success" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: steps.compile.outputs.status == 'success' && !cancelled()
+        with:
+          name: ImmortalWrt_redmi-ax6000_${{ env.DEVICE_INPUT }}
+          path: ${{ github.workspace }}/firmware_collection/*
+
+      - name: Publish release
+        if: steps.compile.outputs.status == 'success' && !cancelled()
+        env:
+          UPSTREAM_SHA: ${{ needs.check.outputs.upstream_sha }}
+        run: |
+          set -euo pipefail
+          date=$(TZ=UTC-8 date +%Y-%m-%d)
+          timestamp=$(date -u +%Y%m%dT%H%M%SZ)
+          tag_name="${RELEASE_PREFIX}-${timestamp}-${GITHUB_RUN_ID}"
+          echo "release_tag=$tag_name" >> "$GITHUB_ENV"
+
+          {
+            echo "## ImmortalWrt Firmware — Redmi AX6000"
+            echo ""
+            echo "- **Date**: $date"
+            echo "- **Device**: Redmi AX6000 (${{ env.DEVICE_INPUT }})"
+            echo "- **Target**: mediatek/filogic (MT7986)"
+            echo "- **Upstream**: \`${UPSTREAM_REPO}@${UPSTREAM_SHA:-$(echo ${UPSTREAM_REF})}\`"
+            echo "- **WiFi Driver**: MTK closed-source (mt_wifi)"
+            echo "- **Trigger**: \`${GITHUB_EVENT_NAME}\`"
+            echo ""
+            echo "### 包含"
+            echo "- passwall / passwall-packages"
+            echo "- mosdns"
+            echo "- openlist"
+            echo "- tailscale (luci-app-tailscale)"
+            echo "- MTK hardware NAT acceleration (turboacc-mtk)"
+            echo ""
+            echo "### 安装"
+            echo "下载 sysupgrade.bin 文件，通过 LuCI 或 SSH 刷入。"
+            echo ""
+            echo "Built with GitHub Actions."
+          } > release_notes.md
+
+          gh release create "$tag_name" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "ImmortalWrt $date (${{ env.DEVICE_INPUT }})" \
+            --notes-file release_notes.md \
+            firmware_collection/*
+
+      - name: Delete old workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        if: always()
+        with:
+          retain_days: 0
+          keep_minimum_runs: 5
+
+  prune:
+    name: Prune old releases
+    needs: build
+    if: always() && needs.build.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prune
+        run: bash scripts/prune-releases.sh

@@ -1,0 +1,8 @@
+openwrt/
+*.bin
+*.img
+*.tar.gz
+*.zip
+.commitHash
+release.txt
+release_notes.md

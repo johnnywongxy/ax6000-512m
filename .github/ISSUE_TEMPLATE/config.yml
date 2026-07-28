@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: ImmortalWrt / OpenWrt community support
+    url: https://forum.openwrt.org
+    about: For questions about OpenWrt/ImmortalWrt itself (not this build pipeline), please use the official forums.
