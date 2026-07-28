@@ -129,7 +129,7 @@ jobs:
       # The session timeout is 30 minutes.
       - name: SSH connection to menuconfig
         if: github.event.inputs.ssh == 'true'
-        uses: mxschmitt/tmate-action@v3.19
+        uses: mxschmitt/action-tmate@v3.24
         timeout-minutes: 30
         with:
           detaching: false
