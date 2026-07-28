@@ -18,10 +18,14 @@ sed -i 's/192.168.1.1/192.168.6.1/g' package/base-files/files/bin/config_generat
 # sed -i 's/OpenWrt/Redmi-AX6000/g' package/base-files/files/bin/config_generate
 
 # ── Clone OpenList (file listing / sharing) ───────────────────────────
-git clone https://github.com/OpenListTeam/OpenList-OpenWRT package/openlist 2>/dev/null || true
+if ! git clone https://github.com/OpenListTeam/OpenList-OpenWRT package/openlist 2>/dev/null; then
+  echo "[diy-part2] Warning: Failed to clone OpenList (may already exist)"
+fi
 
 # ── Clone tailscale LuCI app ──────────────────────────────────────────
-git clone https://github.com/asvow/luci-app-tailscale package/luci-app-tailscale 2>/dev/null || true
+if ! git clone https://github.com/asvow/luci-app-tailscale package/luci-app-tailscale 2>/dev/null; then
+  echo "[diy-part2] Warning: Failed to clone luci-app-tailscale (may already exist)"
+fi
 
 # ── Remove tailscale config files from feeds (use luci-app-tailscale instead) ──
 sed -i '/\/etc\/init\.d\/tailscale/d;/\/etc\/config\/tailscale/d;' feeds/packages/net/tailscale/Makefile 2>/dev/null || true
