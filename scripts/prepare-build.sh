@@ -29,13 +29,24 @@ FEEDS_FILE="$BUILDER_DIR/feeds.conf.default"
 cd "$OPENWRT_DIR"
 
 # 1. Configure feeds from feeds.conf.default (if present).
+#    If a feed NAME (2nd field) already exists in feeds.conf, replace the
+#    existing line instead of appending a duplicate. This lets us override
+#    upstream feeds (e.g. point 'packages' at a different fork) without
+#    triggering "Duplicate feed name" errors.
 [[ -f feeds.conf ]] || cp feeds.conf.default feeds.conf
 if [[ -f "$FEEDS_FILE" ]]; then
   log::info "Merging custom feeds from feeds.conf.default"
   while IFS= read -r line; do
     [[ -z "$line" ]] && continue
     [[ "$line" == \#* ]] && continue
-    grep -qxF "$line" feeds.conf || echo "$line" >> feeds.conf
+    feed_name="$(awk '{print $2}' <<<"$line")"
+    if grep -qE "^(src-git|src-cpy)[[:space:]]+${feed_name}[[:space:]]" feeds.conf; then
+      log::info "  Replacing existing feed: $feed_name"
+      sed -i "/^[[:space:]]*src-git[[:space:]]\\+${feed_name}[[:space:]]/c\\${line}" feeds.conf
+      sed -i "/^[[:space:]]*src-cpy[[:space:]]\\+${feed_name}[[:space:]]/c\\${line}" feeds.conf
+    else
+      echo "$line" >> feeds.conf
+    fi
   done < "$FEEDS_FILE"
 fi
 
