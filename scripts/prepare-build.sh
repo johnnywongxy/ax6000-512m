@@ -36,18 +36,52 @@ cd "$OPENWRT_DIR"
 [[ -f feeds.conf ]] || cp feeds.conf.default feeds.conf
 if [[ -f "$FEEDS_FILE" ]]; then
   log::info "Merging custom feeds from feeds.conf.default"
+  # Read custom feeds into an array (skip comments and blank lines).
+  custom_lines=()
   while IFS= read -r line; do
     [[ -z "$line" ]] && continue
     [[ "$line" == \#* ]] && continue
-    feed_name="$(awk '{print $2}' <<<"$line")"
-    if grep -qE "^(src-git|src-cpy)[[:space:]]+${feed_name}[[:space:]]" feeds.conf; then
-      log::info "  Replacing existing feed: $feed_name"
-      sed -i "/^[[:space:]]*src-git[[:space:]]\\+${feed_name}[[:space:]]/c\\${line}" feeds.conf
-      sed -i "/^[[:space:]]*src-cpy[[:space:]]\\+${feed_name}[[:space:]]/c\\${line}" feeds.conf
-    else
-      echo "$line" >> feeds.conf
-    fi
+    custom_lines+=("$line")
   done < "$FEEDS_FILE"
+
+  # Build the new feeds.conf: for each upstream feed, if we have a custom
+  # override (matched by feed name = 2nd field), use ours; otherwise keep upstream.
+  tmp=""
+  replaced_feeds=()
+  while IFS= read -r upline; do
+    [[ -z "$upline" ]] && continue
+    up_name="$(awk '{print $2}' <<<"$upline")"
+    found=""
+    for cline in "${custom_lines[@]}"; do
+      cname="$(awk '{print $2}' <<<"$cline")"
+      if [[ "$up_name" == "$cname" ]]; then
+        found="$cline"
+        replaced_feeds+=("$up_name")
+        break
+      fi
+    done
+    if [[ -n "$found" ]]; then
+      log::info "  Replacing feed: $up_name"
+      tmp+="$found"$'\n'
+    else
+      tmp+="$upline"$'\n'
+    fi
+  done < feeds.conf
+
+  # Append any custom feeds not already in upstream (e.g. passwall).
+  for cline in "${custom_lines[@]}"; do
+    cname="$(awk '{print $2}' <<<"$cline")"
+    already=false
+    for r in "${replaced_feeds[@]}"; do
+      [[ "$r" == "$cname" ]] && already=true && break
+    done
+    if ! $already; then
+      log::info "  Adding feed: $cname"
+      tmp+="$cline"$'\n'
+    fi
+  done
+
+  printf '%s' "$tmp" > feeds.conf
 fi
 
 # 2. Run diy-part1.sh (before feeds update — adds packages, modifies feed sources).
