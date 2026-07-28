@@ -51,9 +51,11 @@ if [[ -f "$FEEDS_FILE" ]]; then
   while IFS= read -r upline; do
     [[ -z "$upline" ]] && continue
     up_name="$(awk '{print $2}' <<<"$upline")"
+    [[ -z "$up_name" ]] && { log::warn "Skipping malformed feed line (no name): $upline"; continue; }
     found=""
     for cline in "${custom_lines[@]}"; do
       cname="$(awk '{print $2}' <<<"$cline")"
+      [[ -z "$cname" ]] && { log::warn "Skipping malformed custom feed line (no name): $cline"; continue; }
       if [[ "$up_name" == "$cname" ]]; then
         found="$cline"
         replaced_feeds+=("$up_name")
@@ -71,6 +73,7 @@ if [[ -f "$FEEDS_FILE" ]]; then
   # Append any custom feeds not already in upstream (e.g. passwall).
   for cline in "${custom_lines[@]}"; do
     cname="$(awk '{print $2}' <<<"$cline")"
+    [[ -z "$cname" ]] && { log::warn "Skipping malformed custom feed line (no name): $cline"; continue; }
     already=false
     for r in "${replaced_feeds[@]}"; do
       [[ "$r" == "$cname" ]] && already=true && break
@@ -81,7 +84,7 @@ if [[ -f "$FEEDS_FILE" ]]; then
     fi
   done
 
-  printf '%s' "$tmp" > feeds.conf
+  printf '%s\n' "$tmp" > feeds.conf
 fi
 
 # 2. Run diy-part1.sh (before feeds update — adds packages, modifies feed sources).
