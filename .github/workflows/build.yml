@@ -41,7 +41,7 @@ permissions:
   contents: read
 
 env:
-  UPSTREAM_REPO: RuijieNetworksCommunity/MT798X-6.6-24.10
+  UPSTREAM_REPO: johnnywongxy/MT798X-6.6-24.10
   UPSTREAM_REF: mt798x-mt799x-6.6-mtwifi_hnat-dsa-vlan-tag-feature
   TARGET: mediatek/filogic
   DEVICE_INPUT: ${{ github.event.inputs.device || 'ubootmod' }}
@@ -132,9 +132,8 @@ jobs:
         uses: mxschmitt/action-tmate@v3.24
         with:
           limit-access-to-actor: false
-        timeout-minutes: 30
-        with:
           detaching: false
+        timeout-minutes: 30
 
       - name: Save config after menuconfig
         if: github.event.inputs.ssh == 'true'
