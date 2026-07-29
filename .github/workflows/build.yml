@@ -126,14 +126,14 @@ jobs:
       # ── Optional SSH menuconfig ──────────────────────────────────────
       # When triggered with ssh=true, open a tmate session so you can
       # interactively run `make menuconfig` from the SSH shell.
-      # The session timeout is 30 minutes.
+      # The session timeout is 120 minutes.
       - name: SSH connection to menuconfig
         if: github.event.inputs.ssh == 'true'
         uses: mxschmitt/action-tmate@v3.24
         with:
           limit-access-to-actor: false
-          detaching: false
-        timeout-minutes: 30
+          detached: false
+        timeout-minutes: 120
 
       - name: Save config after menuconfig
         if: github.event.inputs.ssh == 'true'
