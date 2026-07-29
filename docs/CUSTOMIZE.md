@@ -7,7 +7,7 @@ Edit `.github/workflows/build.yml`:
 ```yaml
 env:
   UPSTREAM_REPO: RuijieNetworksCommunity/MT798X-6.6-24.10
-  UPSTREAM_REF: mt798x-mt799x-mtwifi_be72pro_be68u
+  UPSTREAM_REF: mt798x-mt799x-6.6-mtwifi_hnat-dsa-vlan-tag-feature
   TARGET: mediatek/filogic
   DEVICE_INPUT: ubootmod          # ubootmod | stock | all
   RELEASE_PREFIX: immortalwrt
