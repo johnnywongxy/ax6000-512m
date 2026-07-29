@@ -270,7 +270,7 @@ jobs:
             firmware_collection/*
 
       - name: Delete old workflow runs
-        uses: Mattraks/delete-workflow-runs@v2.0.6
+        uses: Mattraks/delete-workflow-runs@v2.1.0
         if: always()
         with:
           retain_days: 0
