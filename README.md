@@ -168,7 +168,7 @@ immortalwrt-builder/
 ```yaml
 env:
   UPSTREAM_REPO: RuijieNetworksCommunity/MT798X-6.6-24.10
-  UPSTREAM_REF: mt798x-mt799x-mtwifi_be72pro_be68u
+  UPSTREAM_REF: mt798x-mt799x-6.6-mtwifi_hnat-dsa-vlan-tag-feature
   KEEP: "3"                       # 保留多少个 Release
   TZ: Asia/Shanghai
 ```
@@ -255,7 +255,7 @@ schedule:
 | 项 | 值 |
 |---|---|
 | 上游仓库 | [RuijieNetworksCommunity/MT798X-6.6-24.10](https://github.com/RuijieNetworksCommunity/MT798X-6.6-24.10) |
-| 分支 | `mt798x-mt799x-mtwifi_be72pro_be68u` |
+| 分支 | `mt798x-mt799x-6.6-mtwifi_hnat-dsa-vlan-tag-feature` |
 | OpenWrt 版本 | 24.10 |
 | Linux 内核 | 6.6 |
 | WiFi 驱动 | MTK 闭源 `mt_wifi`（非 mac80211） |
