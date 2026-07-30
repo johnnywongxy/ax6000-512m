@@ -41,8 +41,8 @@ permissions:
   contents: read
 
 env:
-  UPSTREAM_REPO: johnnywongxy/MT798X-6.6-24.10
-  UPSTREAM_REF: mt798x-mt799x-6.6-mtwifi_hnat-dsa-vlan-tag-feature
+  UPSTREAM_REPO: padavanonly/immortalwrt-mt798x-6.6
+  UPSTREAM_REF: openwrt-24.10-6.6
   TARGET: mediatek/filogic
   DEVICE_INPUT: ${{ github.event.inputs.device || 'ubootmod' }}
   RELEASE_PREFIX: immortalwrt
