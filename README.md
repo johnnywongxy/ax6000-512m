@@ -167,8 +167,8 @@ immortalwrt-builder/
 
 ```yaml
 env:
-  UPSTREAM_REPO: RuijieNetworksCommunity/MT798X-6.6-24.10
-  UPSTREAM_REF: mt798x-mt799x-6.6-mtwifi_hnat-dsa-vlan-tag-feature
+  UPSTREAM_REPO: padavanonly/immortalwrt-mt798x-6.6
+  UPSTREAM_REF: openwrt-24.10-6.6
   KEEP: "3"                       # 保留多少个 Release
   TZ: Asia/Shanghai
 ```
@@ -254,8 +254,8 @@ schedule:
 
 | 项 | 值 |
 |---|---|
-| 上游仓库 | [RuijieNetworksCommunity/MT798X-6.6-24.10](https://github.com/RuijieNetworksCommunity/MT798X-6.6-24.10) |
-| 分支 | `mt798x-mt799x-6.6-mtwifi_hnat-dsa-vlan-tag-feature` |
+| 上游仓库 | [padavanonly/immortalwrt-mt798x-6.6](https://github.com/padavanonly/immortalwrt-mt798x-6.6) |
+| 分支 | `openwrt-24.10-6.6` |
 | OpenWrt 版本 | 24.10 |
 | Linux 内核 | 6.6 |
 | WiFi 驱动 | MTK 闭源 `mt_wifi`（非 mac80211） |
@@ -275,7 +275,7 @@ schedule:
 
 ## 🙏 致谢
 
-- **[RuijieNetworksCommunity](https://github.com/RuijieNetworksCommunity)** — MT798x 闭源驱动 OpenWrt 分支
+- **[johnnywongxy](https://github.com/johnnywongxy)** — MT798x 闭源驱动 OpenWrt 分支
 - **[padavanonly/immortalwrt-mt798x-6.6](https://github.com/padavanonly/immortalwrt-mt798x-6.6)** — MT798x 闭源驱动源码 lineage
 - **[JuliusBairaktaris/Qualcommax_NSS_Builder](https://github.com/JuliusBairaktaris/Qualcommax_NSS_Builder)** — 工程化架构模板
 - **[P3TERX/Actions-OpenWrt](https://github.com/P3TERX/Actions-OpenWrt)** — diy-part1/2 脚本模式
