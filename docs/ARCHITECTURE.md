@@ -52,8 +52,8 @@ All parameters live in the `env:` block at the top of `.github/workflows/build.y
 
 ```yaml
 env:
-  UPSTREAM_REPO: RuijieNetworksCommunity/MT798X-6.6-24.10
-  UPSTREAM_REF: mt798x-mt799x-6.6-mtwifi_hnat-dsa-vlan-tag-feature
+  UPSTREAM_REPO: padavanonly/immortalwrt-mt798x-6.6
+  UPSTREAM_REF: openwrt-24.10-6.6
   TARGET: mediatek/filogic
   RELEASE_PREFIX: immortalwrt
   KEEP: "3"
