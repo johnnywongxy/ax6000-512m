@@ -99,6 +99,14 @@ log::info "Updating + installing feeds"
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
+# Remove xray/v2ray packages that passwall pulls in but we disabled in config.
+# Even with CONFIG_PACKAGE_xray-plugin=n, the passwall feed dependencies cause
+# these packages' Makefiles to be installed, so make still tries to build them.
+log::info "Removing disabled xray/v2ray packages from feeds"
+rm -rf feeds/packages/net/xray-core \
+       feeds/packages/net/xray-plugin \
+       feeds/packages/net/v2ray-plugin
+
 # 4. Run diy-part2.sh (after feeds install — modify configs, defaults).
 if [[ -f "$BUILDER_DIR/diy-part2.sh" ]]; then
   log::info "Running diy-part2.sh (after feeds install)"
