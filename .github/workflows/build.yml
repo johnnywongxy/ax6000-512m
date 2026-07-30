@@ -41,7 +41,7 @@ permissions:
   contents: read
 
 env:
-  UPSTREAM_REPO: padavanonly/immortalwrt-mt798x-6.6
+  UPSTREAM_REPO: johnnywongxy/immortalwrt-mt798x-6.6
   UPSTREAM_REF: openwrt-24.10-6.6
   TARGET: mediatek/filogic
   DEVICE_INPUT: ${{ github.event.inputs.device || 'ubootmod' }}
