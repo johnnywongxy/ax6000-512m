@@ -124,7 +124,7 @@ CONFIG_MTK_ACK_CTS_TIMEOUT_SUPPORT=y
 CONFIG_PACKAGE_kmod-mediatek_hnat=y
 CONFIG_PACKAGE_kmod-mt_wifi=y
 CONFIG_PACKAGE_kmod-conninfra=y
-CONFIG_PACKAGE_kmod-warp=y
+CONFIG_PACKAGE_kmod-warp=n
 CONFIG_WARP_CHIPSET="mt7986"
 CONFIG_WARP_VERSION=2
 CONFIG_WARP_NEW_FW=y
@@ -309,3 +309,7 @@ CONFIG_first_card_name="MT7986"
 CONFIG_PACKAGE_xray-plugin=n
 CONFIG_PACKAGE_xray-core=n
 CONFIG_PACKAGE_v2ray-plugin=n
+
+# Disable WARP and WED drivers — upstream kernel driver has compilation errors
+# (undefined register addresses in mt798x-mt798x-6.6-mtwifi_hnat-dsa-vlan-tag-feature branch)
+CONFIG_PACKAGE_kmod-mtk_wed=n
